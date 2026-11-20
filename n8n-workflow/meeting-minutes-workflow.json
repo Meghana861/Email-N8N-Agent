@@ -1,0 +1,180 @@
+{
+  "name": "Meeting Transcript → Google Docs + Google Tasks + Gmail + Calendar",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerOn": "create",
+        "pollTimes": {
+          "item": [
+            {
+              "hour": 1
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1",
+      "name": "Google Drive Trigger",
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [200, 200],
+      "credentials": {
+        "googleDriveOAuth2Api": "YOUR_GOOGLE_DRIVE_CREDENTIAL"
+      }
+    },
+    {
+      "parameters": {
+        "path": "manual-transcript",
+        "options": {}
+      },
+      "id": "2",
+      "name": "Webhook (Manual Upload)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 400]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": "={{$json[\"id\"]}}"
+      },
+      "id": "3",
+      "name": "Google Drive - Download Transcript",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 1,
+      "position": [400, 200],
+      "credentials": {
+        "googleDriveOAuth2Api": "YOUR_GOOGLE_DRIVE_CREDENTIAL"
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "let transcript;\nlet meetingTitle = $json.meetingTitle || \"Untitled Meeting\";\nlet meetingDate = $json.meetingDate || new Date().toISOString().split('T')[0];\nlet attendees = $json.attendees || [];\n\nif ($node[\"Webhook (Manual Upload)\"].json.transcript) {\n  transcript = $node[\"Webhook (Manual Upload)\"].json.transcript;\n} else if ($node[\"Google Drive - Download Transcript\"].binary && $node[\"Google Drive - Download Transcript\"].binary.data) {\n  transcript = Buffer.from($node[\"Google Drive - Download Transcript\"].binary.data.data, 'base64').toString('utf8');\n}\n\n// Extract emails from transcript\nconst emailRegex = /[\\w.-]+@[\\w.-]+\\.[A-Za-z]{2,}/g;\nconst foundEmails = transcript.match(emailRegex) || [];\n\nattendees = [...new Set([...attendees, ...foundEmails])];\n\nreturn [{ json: { transcript, meetingTitle, meetingDate, attendees } }];"
+      },
+      "id": "4",
+      "name": "Prepare Transcript & Attendees",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [600, 300]
+    },
+    {
+  "parameters": {
+    "url": "https://api.cohere.ai/v1/generate",
+    "method": "POST",
+    "authentication": "none",
+    "headers": {
+      "Authorization": "Bearer YOUR_NEW_VALID_API_KEY",
+      "Content-Type": "application/json"
+    },
+    "options": {},
+    "body": {
+      "model": "command-xlarge-nightly",
+      "prompt": "You are a meeting assistant. Summarize this meeting transcript into clear meeting minutes and extract all action items. Include attendees' names from the transcript. Respond ONLY in JSON with keys: minutes (string), tasks (array of {title, due_date, assignee_email}). Transcript: {{$json.transcript}}",
+      "max_tokens": 500
+    }
+  },
+  "id": "5",
+  "name": "Cohere AI - Summarize & Extract",
+  "type": "n8n-nodes-base.httpRequest",
+  "typeVersion": 1,
+  "position": [800, 300]
+},
+    {
+      "parameters": {
+        "functionCode": "const output = JSON.parse($json.generations[0].text || '{}');\nreturn [{ json: { minutes: output.minutes || '', tasks: output.tasks || [], attendees: $json.attendees, meetingTitle: $json.meetingTitle, meetingDate: $json.meetingDate } }];"
+      },
+      "id": "6",
+      "name": "Parse AI Output",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "documentContent": "={{$json.minutes}}",
+        "title": "={{`Meeting Minutes - ${$json.meetingTitle} - ${$json.meetingDate}`}}"
+      },
+      "id": "7",
+      "name": "Google Docs - Create",
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 1,
+      "position": [1200, 200],
+      "credentials": {
+        "googleDocsOAuth2Api": "YOUR_GOOGLE_DOCS_CREDENTIAL"
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "return $json.tasks.map(task => ({ json: task }));"
+      },
+      "id": "8",
+      "name": "Split Tasks",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1200, 400]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "title": "={{$json.title}}",
+        "due": "={{$json.due_date}}"
+      },
+      "id": "9",
+      "name": "Google Tasks - Create",
+      "type": "n8n-nodes-base.googleTasks",
+      "typeVersion": 1,
+      "position": [1400, 400],
+      "credentials": {
+        "googleTasksOAuth2Api": "YOUR_GOOGLE_TASKS_CREDENTIAL"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "toEmail": "={{$json.attendees.join(',')}}",
+        "subject": "={{`Meeting Summary - ${$json.meetingTitle}`}}",
+        "body": "={{`Hi Team,\\n\\nHere’s the summary for ${$json.meetingTitle} on ${$json.meetingDate}:\\n\\n${$json.minutes}\\n\\nGoogle Doc: ${$node[\"Google Docs - Create\"].json.url}`}}"
+      },
+      "id": "10",
+      "name": "Gmail - Send Summary",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [1400, 200],
+      "credentials": {
+        "gmailOAuth2Api": "YOUR_GMAIL_CREDENTIAL"
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://www.googleapis.com/calendar/v3/calendars/primary/events?supportsAttachments=true",
+        "method": "POST",
+        "authentication": "oAuth2",
+        "oAuth2Credential": "YOUR_GOOGLE_CALENDAR_CREDENTIAL",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": "={\n  \"summary\": \"{{$json.meetingTitle}}\",\n  \"description\": \"Meeting scheduled with attached minutes.\",\n  \"start\": { \"dateTime\": \"{{$json.meetingDate}}T09:00:00Z\", \"timeZone\": \"Asia/Kolkata\" },\n  \"end\": { \"dateTime\": \"{{$json.meetingDate}}T10:00:00Z\", \"timeZone\": \"Asia/Kolkata\" },\n  \"attendees\": {{$json.attendees.map(email => ({ \"email\": email }))}},\n  \"attachments\": [\n    { \"fileUrl\": \"{{$node[\"Google Docs - Create\"].json.webViewLink}}\", \"title\": \"Meeting Minutes\" }\n  ]\n}"
+      },
+      "id": "11",
+      "name": "Google Calendar - Create Event with Attachment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [1600, 200]
+    }
+  ],
+  "connections": {
+    "Google Drive Trigger": { "main": [[{ "node": "Google Drive - Download Transcript", "type": "main", "index": 0 }]] },
+    "Webhook (Manual Upload)": { "main": [[{ "node": "Prepare Transcript & Attendees", "type": "main", "index": 0 }]] },
+    "Google Drive - Download Transcript": { "main": [[{ "node": "Prepare Transcript & Attendees", "type": "main", "index": 0 }]] },
+    "Prepare Transcript & Attendees": { "main": [[{ "node": "Cohere AI - Summarize & Extract", "type": "main", "index": 0 }]] },
+    "Cohere AI - Summarize & Extract": { "main": [[{ "node": "Parse AI Output", "type": "main", "index": 0 }]] },
+    "Parse AI Output": { "main": [[
+        { "node": "Google Docs - Create", "type": "main", "index": 0 },
+        { "node": "Split Tasks", "type": "main", "index": 0 },
+        { "node": "Gmail - Send Summary", "type": "main", "index": 0 }
+      ]] 
+    },
+    "Google Docs - Create": { "main": [[{ "node": "Google Calendar - Create Event with Attachment", "type": "main", "index": 0 }]] },
+    "Split Tasks": { "main": [[{ "node": "Google Tasks - Create", "type": "main", "index": 0 }]] }
+  }
+}

@@ -1,0 +1,55 @@
+# Sample Meeting Transcript
+
+Use this sample transcript to test the Meeting Minutes Generator:
+
+---
+
+**Meeting: Weekly Project Standup**
+**Date: August 12, 2025**
+**Time: 10:00 AM - 11:00 AM**
+
+**Attendees:**
+- Meghana Nemani (meghana.nemani@amzur.com)- Project Manager
+- Revathi Lagudu (meghananemani966@gmail.com) - Lead Developer  
+
+
+**Meeting Transcript:**
+
+John Smith: Good morning everyone. Let's start our weekly standup. Sarah, can you give us an update on the backend API development?
+
+Sarah Johnson: Sure, John. We've completed 80% of the user authentication API endpoints. The remaining 20% should be finished by this Friday, August 16th. I'm currently working on the password reset functionality and the OAuth integration.
+
+Mike Davis: That's great progress, Sarah. On the frontend side, I've finished the mockups for the user dashboard and the settings page. I'll have the interactive prototypes ready by Wednesday, August 14th. I need to coordinate with Sarah next week to ensure the API integration goes smoothly.
+
+Lisa Chen: From a testing perspective, I've prepared the test cases for the authentication module. Once Sarah completes the API endpoints, I can start the functional testing. I'm planning to have the initial test results by Monday, August 19th. I also want to discuss the automated testing framework with Alex.
+
+Alex Rodriguez: Speaking of automation, I've set up the CI/CD pipeline for the staging environment. The production deployment pipeline will be ready by Thursday, August 15th. Lisa, let's schedule a meeting this afternoon at 3 PM to discuss the automated testing integration.
+
+John Smith: Excellent updates from everyone. Let me note down the action items:
+
+1. Sarah to complete remaining API endpoints by Friday, August 16th
+2. Mike to deliver interactive prototypes by Wednesday, August 14th  
+3. Sarah and Mike to schedule API integration planning meeting for next week
+4. Lisa to begin functional testing after API completion, targeting results by August 19th
+5. Alex to finalize production deployment pipeline by Thursday, August 15th
+6. Lisa and Alex to meet today at 3 PM about automated testing framework
+
+Any blockers or concerns?
+
+Sarah Johnson: No blockers on my end. The API development is on track.
+
+Mike Davis: I'm good as well. Just need to confirm a few design decisions with the stakeholders by tomorrow.
+
+Lisa Chen: No issues here. Looking forward to the meeting with Alex later today.
+
+Alex Rodriguez: All good. The infrastructure is stable and ready for the increased testing load.
+
+John Smith: Perfect. Our next milestone review is scheduled for Friday, August 23rd, where we'll assess our progress toward the beta release. The client presentation is planned for August 30th, so we need to have everything polished by then.
+
+Let's keep the momentum going. Same time next week for our standup. Thanks everyone!
+
+**Meeting End: 11:00 AM**
+
+---
+
+**Note:** This transcript contains multiple email addresses and clear action items with deadlines, making it perfect for testing the automated meeting minutes generation system.
